@@ -27,7 +27,7 @@ public:
     }/*lets see now*/
 };
 
-// Helper function to print the vector
+
 void printVector(const vector<int>& v) {
     cout << "[";
     for (size_t i = 0; i < v.size(); i++) {
