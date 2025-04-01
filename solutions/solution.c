@@ -4,7 +4,7 @@
 
 
 int* sortedSquares(int* nums, int numsSize, int* returnSize) {
-    *returnSize = numsSize;  // Set the return size
+    *returnSize = numsSize; 
 
     int* result = (int*)malloc(numsSize * sizeof(int));  // Allocate memory for result array
     if (!result) return NULL;  // Return NULL if allocation fails
