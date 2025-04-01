@@ -22,7 +22,7 @@ jobs:
         run: |
           BEFORE_COMMIT="${{ github.event.before }}"
           if [ -z "$BEFORE_COMMIT" ] || ! git cat-file -e "$BEFORE_COMMIT"^{commit}; then
-            BEFORE_COMMIT=$(git rev-parse HEAD~1)
+            BEFORE_COMMIT=$(git rev-parse HEAD~1)  # Use last commit as fallback
           fi
           
           CHANGED_FILES=$(git diff --name-only "$BEFORE_COMMIT" HEAD | grep '^solutions/')
@@ -33,14 +33,13 @@ jobs:
             exit 1
           fi
 
-          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
-          echo "$CHANGED_FILES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
+          echo "::set-output name=changed_files::$CHANGED_FILES"
 
       - name: Determine File Type
         id: determine-file
         run: |
-          echo "$CHANGED_FILES" | while read file; do
+          for file in $CHANGED_FILES; do
             case "$file" in
               *.c) echo "language=C" >> $GITHUB_ENV ;;
               *.cpp) echo "language=C++" >> $GITHUB_ENV ;;
@@ -63,14 +62,14 @@ jobs:
 
       - name: Install Python Dependencies
         if: env.language == 'Python'
-        run: sudo apt update && sudo apt install -y python3 python3-pytest
+        run: sudo apt update && sudo apt install -y python3
 
-      - name: Run C Tests
+      - name: Compile and Run C Program
         if: env.language == 'C'
         run: |
           gcc -o solution_c $CHANGED_FILES
+          echo "Running tests for C program..."
           while read -r test_input test_expected; do
-            echo "Running test case..."
             echo "Input: $test_input"
             echo "Expected Output: $test_expected"
             actual_output=$(echo "$test_input" | ./solution_c)
@@ -82,12 +81,12 @@ jobs:
             fi
           done < tests/test.c | tee test_results.log
 
-      - name: Run C++ Tests
+      - name: Compile and Run C++ Program
         if: env.language == 'C++'
         run: |
           g++ -o solution_cpp $CHANGED_FILES
+          echo "Running tests for C++ program..."
           while read -r test_input test_expected; do
-            echo "Running test case..."
             echo "Input: $test_input"
             echo "Expected Output: $test_expected"
             actual_output=$(echo "$test_input" | ./solution_cpp)
@@ -99,14 +98,14 @@ jobs:
             fi
           done < tests/test.cpp | tee test_results.log
 
-      - name: Run Java Tests
+      - name: Compile and Run Java Program
         if: env.language == 'Java'
         run: |
-          javac -d solutions $CHANGED_FILES
+          javac $CHANGED_FILES -d solutions
           for file in $CHANGED_FILES; do
             class=$(basename "$file" .java)
+            echo "Running tests for Java class: $class..."
             while read -r test_input test_expected; do
-              echo "Running test case for $class..."
               echo "Input: $test_input"
               echo "Expected Output: $test_expected"
               actual_output=$(echo "$test_input" | java -cp solutions "$class")
@@ -116,15 +115,15 @@ jobs:
               else
                 echo "❌ Test Failed"
               fi
-            done < tests/Test.java | tee test_results.log
+            done < tests/test.java | tee test_results.log
           done
 
-      - name: Run Python Tests
+      - name: Run Python Program
         if: env.language == 'Python'
         run: |
+          echo "Running tests for Python script..."
           for file in $CHANGED_FILES; do
             while read -r test_input test_expected; do
-              echo "Running test case for $file..."
               echo "Input: $test_input"
               echo "Expected Output: $test_expected"
               actual_output=$(echo "$test_input" | python3 "$file")
