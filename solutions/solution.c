@@ -29,7 +29,7 @@ int* sortedSquares(int* nums, int numsSize, int* returnSize) {
     return result;
 }
 
-// Helper function to print an array
+
 void printArray(int* arr, int size) {
     printf("[");
     for (int i = 0; i < size; i++) {
