@@ -39,15 +39,24 @@ void runTestCases() {
         int result[10] = {0};
         sortedSquares(testCases[i], sizes[i], result);
 
-        printf("\nTest Case %d\n", i + 1);
-        printf("Input Given: {");
+        printf("\n-------------------------------\n");
+        printf("Test Case %d\n", i + 1);
+
+        printf("Given Input: {");
         for (int j = 0; j < sizes[i]; j++) {
             printf("%d", testCases[i][j]);
             if (j < sizes[i] - 1) printf(", ");
         }
         printf("}\n");
 
-        printf("Resultant Output: {");
+        printf("Expected Output: {");
+        for (int j = 0; j < sizes[i]; j++) {
+            printf("%d", expectedOutputs[i][j]);
+            if (j < sizes[i] - 1) printf(", ");
+        }
+        printf("}\n");
+
+        printf("Your Output: {");
         for (int j = 0; j < sizes[i]; j++) {
             printf("%d", result[j]);
             if (j < sizes[i] - 1) printf(", ");
@@ -63,13 +72,12 @@ void runTestCases() {
             }
         }
 
-        printf("Test Case: %s\n", passed ? "✅ Passed" : "❌ Not Passed");
+        printf("Test Case: %s\n", passed ? "✅ Passed" : "❌ Failed");
     }
+    printf("\n-------------------------------\n");
 }
 
 int main() {
     runTestCases();
     return 0;
 }
-/*fsgfdsfgdfgdfgd*/
-

@@ -25,7 +25,7 @@ jobs:
             BEFORE_COMMIT=$(git rev-parse HEAD~1)
           fi
           
-          CHANGED_FILES=$(git diff --name-only "$BEFORE_COMMIT" HEAD)
+          CHANGED_FILES=$(git diff --name-only "$BEFORE_COMMIT" HEAD | grep '^solutions/')
           echo "Detected changed files: $CHANGED_FILES"
           
           if [ -z "$CHANGED_FILES" ]; then
@@ -33,110 +33,109 @@ jobs:
             exit 1
           fi
 
-          echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
+          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
+          echo "$CHANGED_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Determine File Type
         id: determine-file
         run: |
-          if echo "$CHANGED_FILES" | grep -qE '\.c$'; then
-            echo "language=C" >> $GITHUB_ENV
-          elif echo "$CHANGED_FILES" | grep -qE '\.cpp$'; then
-            echo "language=C++" >> $GITHUB_ENV
-          elif echo "$CHANGED_FILES" | grep -qE '\.py$'; then
-            echo "language=Python" >> $GITHUB_ENV
-          elif echo "$CHANGED_FILES" | grep -qE '\.java$'; then
-            echo "language=Java" >> $GITHUB_ENV
-          else
-            echo "No relevant file changes detected. Exiting..."
-            exit 1
-          fi
+          echo "$CHANGED_FILES" | while read file; do
+            case "$file" in
+              *.c) echo "language=C" >> $GITHUB_ENV ;;
+              *.cpp) echo "language=C++" >> $GITHUB_ENV ;;
+              *.py) echo "language=Python" >> $GITHUB_ENV ;;
+              *.java) echo "language=Java" >> $GITHUB_ENV ;;
+            esac
+          done
 
       - name: Install C Dependencies
         if: env.language == 'C'
-        run: |
-          sudo apt update
-          sudo apt install -y gcc
+        run: sudo apt update && sudo apt install -y gcc
 
       - name: Install C++ Dependencies
         if: env.language == 'C++'
-        run: |
-          sudo apt update
-          sudo apt install -y g++
+        run: sudo apt update && sudo apt install -y g++
 
       - name: Install Java Dependencies
         if: env.language == 'Java'
-        run: |
-          sudo apt update
-          sudo apt install -y openjdk-17-jdk
+        run: sudo apt update && sudo apt install -y openjdk-17-jdk
 
       - name: Install Python Dependencies
         if: env.language == 'Python'
-        run: |
-          sudo apt update
-          sudo apt install -y python3 python3-pytest
+        run: sudo apt update && sudo apt install -y python3 python3-pytest
 
       - name: Run C Tests
         if: env.language == 'C'
         run: |
-          gcc solutions/*.c -o solution_c
+          gcc -o solution_c $CHANGED_FILES
           while read -r test_input test_expected; do
+            echo "Running test case..."
             echo "Input: $test_input"
             echo "Expected Output: $test_expected"
             actual_output=$(echo "$test_input" | ./solution_c)
             echo "Actual Output: $actual_output"
             if [ "$actual_output" == "$test_expected" ]; then
-              echo "Test Case Passed ✅"
+              echo "✅ Test Passed"
             else
-              echo "Test Case Failed ❌"
+              echo "❌ Test Failed"
             fi
           done < tests/test.c | tee test_results.log
 
       - name: Run C++ Tests
         if: env.language == 'C++'
         run: |
-          g++ solutions/*.cpp -o solution_cpp
+          g++ -o solution_cpp $CHANGED_FILES
           while read -r test_input test_expected; do
+            echo "Running test case..."
             echo "Input: $test_input"
             echo "Expected Output: $test_expected"
             actual_output=$(echo "$test_input" | ./solution_cpp)
             echo "Actual Output: $actual_output"
             if [ "$actual_output" == "$test_expected" ]; then
-              echo "Test Case Passed ✅"
+              echo "✅ Test Passed"
             else
-              echo "Test Case Failed ❌"
+              echo "❌ Test Failed"
             fi
           done < tests/test.cpp | tee test_results.log
 
       - name: Run Java Tests
         if: env.language == 'Java'
         run: |
-          javac -d solutions solutions/*.java
-          while read -r test_input test_expected; do
-            echo "Input: $test_input"
-            echo "Expected Output: $test_expected"
-            actual_output=$(echo "$test_input" | java -cp solutions Solution)
-            echo "Actual Output: $actual_output"
-            if [ "$actual_output" == "$test_expected" ]; then
-              echo "Test Case Passed ✅"
-            else
-              echo "Test Case Failed ❌"
-            fi
-          done < tests/Test.java | tee test_results.log
+          javac -d solutions $CHANGED_FILES
+          for file in $CHANGED_FILES; do
+            class=$(basename "$file" .java)
+            while read -r test_input test_expected; do
+              echo "Running test case for $class..."
+              echo "Input: $test_input"
+              echo "Expected Output: $test_expected"
+              actual_output=$(echo "$test_input" | java -cp solutions "$class")
+              echo "Actual Output: $actual_output"
+              if [ "$actual_output" == "$test_expected" ]; then
+                echo "✅ Test Passed"
+              else
+                echo "❌ Test Failed"
+              fi
+            done < tests/Test.java | tee test_results.log
+          done
 
       - name: Run Python Tests
         if: env.language == 'Python'
         run: |
-          while read -r test_input test_expected; do
-            echo "Input: $test_input"
-            echo "Expected Output: $test_expected"
-            actual_output=$(echo "$test_input" | python3 solutions/*.py)
-            echo "Actual Output: $actual_output"
-            if [ "$actual_output" == "$test_expected" ]; then
-              echo "Test Case Passed ✅"
-            else
-              echo "Test Case Failed ❌"
-            fi
-          done < tests/test.py | tee test_results.log
+          for file in $CHANGED_FILES; do
+            while read -r test_input test_expected; do
+              echo "Running test case for $file..."
+              echo "Input: $test_input"
+              echo "Expected Output: $test_expected"
+              actual_output=$(echo "$test_input" | python3 "$file")
+              echo "Actual Output: $actual_output"
+              if [ "$actual_output" == "$test_expected" ]; then
+                echo "✅ Test Passed"
+              else
+                echo "❌ Test Failed"
+              fi
+            done < tests/test.py | tee test_results.log
+          done
 
       - name: Upload Test Results
         if: always()

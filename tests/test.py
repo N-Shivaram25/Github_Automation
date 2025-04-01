@@ -2,7 +2,7 @@ def sorted_squares(nums):
     left, right = 0, len(nums) - 1
     result = [0] * len(nums)
     pos = len(nums) - 1
-
+    
     while left <= right:
         if abs(nums[left]) > abs(nums[right]):
             result[pos] = nums[left] ** 2
@@ -11,7 +11,7 @@ def sorted_squares(nums):
             result[pos] = nums[right] ** 2
             right -= 1
         pos -= 1
-
+    
     return result
 
 def run_test_cases():
@@ -22,7 +22,7 @@ def run_test_cases():
         [-7, -3, 2, 3, 11],
         [-6, -5, -3, -1, 0, 2, 3, 4, 8]
     ]
-
+    
     expected_outputs = [
         [0, 1, 4, 9, 25, 49, 100, 144],
         [0, 1, 4, 9, 250000, 16000000, 100000000],
@@ -30,12 +30,22 @@ def run_test_cases():
         [4, 9, 9, 49, 121],
         [0, 1, 4, 9, 9, 16, 25, 36, 64]
     ]
+    
+    for i, test_case in enumerate(test_cases):
+        result = sorted_squares(test_case)
+        
+        print("\n" + "-" * 30)
+        print(f"Test Case {i + 1}")
+        print(f"Given Input: {test_case}")
+        print(f"Expected Output: {expected_outputs[i]}")
+        print(f"Your Output: {result}")
+        
+        if result == expected_outputs[i]:
+            print("Test Case: ✅ Passed")
+        else:
+            print("Test Case: ❌ Failed")
+    
+    print("\n" + "-" * 30)
 
-    for idx, test in enumerate(test_cases):
-        result = sorted_squares(test)
-        print(f"\nTest Case {idx + 1}")
-        print(f"Input Given: {test}")
-        print(f"Resultant Output: {result}")
-        print(f"Test Case: {'✅ Passed' if result == expected_outputs[idx] else '❌ Not Passed'}")
-
-run_test_cases()
+if __name__ == "__main__":
+    run_test_cases()
