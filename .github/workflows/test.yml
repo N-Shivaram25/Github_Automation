@@ -20,7 +20,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y gcc g++ openjdk-17-jdk python3
+          sudo apt install -y gcc g++ openjdk-17-jdk python3 pytest
 
       - name: Detect Changed Files
         id: changed-files
@@ -61,31 +61,38 @@ jobs:
             exit 1
           fi
 
-     
-
-      - name: Compile and Run C Program
+      - name: Run C Tests
         if: steps.determine-file.outputs.language == 'C'
         run: |
           gcc solutions/*.c -o solution_c
-          ./solution_c < tests/test.c
+          echo "Running C test cases..."
+          for test in tests/*.c; do
+            echo "Running test case: $test"
+            ./solution_c < "$test"
+          done
 
-      - name: Compile and Run C++ Program
+      - name: Run C++ Tests
         if: steps.determine-file.outputs.language == 'C++'
         run: |
           g++ solutions/*.cpp -o solution_cpp
-          ./solution_cpp < tests/test.cpp
+          echo "Running C++ test cases..."
+          for test in tests/*.cpp; do
+            echo "Running test case: $test"
+            ./solution_cpp < "$test"
+          done
 
-      - name: Run Python Program
+      - name: Run Python Tests
         if: steps.determine-file.outputs.language == 'Python'
         run: |
-          if [ ! -f solutions/*.py ]; then
-            echo "Error: Python script not found!"
-            exit 1
-          fi
-          python3 solutions/*.py < tests/test.py
+          echo "Running Python test cases..."
+          pytest tests/ --tb=short --maxfail=5
 
-      - name: Compile and Run Java Program
+      - name: Run Java Tests
         if: steps.determine-file.outputs.language == 'Java'
         run: |
           javac solutions/*.java
-          java -cp solutions Solution < tests/Test.java
+          echo "Running Java test cases..."
+          for test in tests/*.java; do
+            echo "Running test case: $test"
+            java -cp solutions Solution < "$test"
+          done
