@@ -39,7 +39,7 @@ void printArray(int* arr, int size) {
     printf("]\n");
 }
 
-// Main function to test the sortedSquares function
+
 int main() {
     int nums[] = {-4, -1, 0, 3, 10};
     int numsSize = sizeof(nums) / sizeof(nums[0]);
