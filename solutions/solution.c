@@ -12,7 +12,7 @@ int* sortedSquares(int* nums, int numsSize, int* returnSize) {
     int left = 0, right = numsSize - 1;
     int index = numsSize - 1;
 
-    // Two-pointer approach to fill the array from largest to smallest
+  
     while (left <= right) {
         int leftSquare = nums[left] * nums[left];
         int rightSquare = nums[right] * nums[right];
