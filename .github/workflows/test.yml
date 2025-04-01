@@ -17,11 +17,6 @@ jobs:
         with:
           fetch-depth: 2  # Ensure previous commit is available
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y gcc g++ openjdk-17-jdk python3 python3-pytest
-
       - name: Detect Changed Files
         id: changed-files
         run: |
@@ -39,7 +34,6 @@ jobs:
           fi
 
           echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
-          echo "::set-output name=changed_files::$CHANGED_FILES"
 
       - name: Determine File Type
         id: determine-file
@@ -57,36 +51,92 @@ jobs:
             exit 1
           fi
 
-      - name: Compile and Run C Program
+      - name: Install C Dependencies
+        if: env.language == 'C'
+        run: |
+          sudo apt update
+          sudo apt install -y gcc
+
+      - name: Install C++ Dependencies
+        if: env.language == 'C++'
+        run: |
+          sudo apt update
+          sudo apt install -y g++
+
+      - name: Install Java Dependencies
+        if: env.language == 'Java'
+        run: |
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk
+
+      - name: Install Python Dependencies
+        if: env.language == 'Python'
+        run: |
+          sudo apt update
+          sudo apt install -y python3 python3-pytest
+
+      - name: Run C Tests
         if: env.language == 'C'
         run: |
           gcc solutions/*.c -o solution_c
-          echo "Running C test cases..."
-          ./solution_c < tests/test.c | tee test_results.log
+          while read -r test_input test_expected; do
+            echo "Input: $test_input"
+            echo "Expected Output: $test_expected"
+            actual_output=$(echo "$test_input" | ./solution_c)
+            echo "Actual Output: $actual_output"
+            if [ "$actual_output" == "$test_expected" ]; then
+              echo "Test Case Passed ✅"
+            else
+              echo "Test Case Failed ❌"
+            fi
+          done < tests/test.c | tee test_results.log
 
-      - name: Compile and Run C++ Program
+      - name: Run C++ Tests
         if: env.language == 'C++'
         run: |
           g++ solutions/*.cpp -o solution_cpp
-          echo "Running C++ test cases..."
-          ./solution_cpp < tests/test.cpp | tee test_results.log
+          while read -r test_input test_expected; do
+            echo "Input: $test_input"
+            echo "Expected Output: $test_expected"
+            actual_output=$(echo "$test_input" | ./solution_cpp)
+            echo "Actual Output: $actual_output"
+            if [ "$actual_output" == "$test_expected" ]; then
+              echo "Test Case Passed ✅"
+            else
+              echo "Test Case Failed ❌"
+            fi
+          done < tests/test.cpp | tee test_results.log
+
+      - name: Run Java Tests
+        if: env.language == 'Java'
+        run: |
+          javac -d solutions solutions/*.java
+          while read -r test_input test_expected; do
+            echo "Input: $test_input"
+            echo "Expected Output: $test_expected"
+            actual_output=$(echo "$test_input" | java -cp solutions Solution)
+            echo "Actual Output: $actual_output"
+            if [ "$actual_output" == "$test_expected" ]; then
+              echo "Test Case Passed ✅"
+            else
+              echo "Test Case Failed ❌"
+            fi
+          done < tests/Test.java | tee test_results.log
 
       - name: Run Python Tests
         if: env.language == 'Python'
         run: |
-          if [ ! -f solutions/*.py ]; then
-            echo "Error: Python script not found!"
-            exit 1
-          fi
-          echo "Running Python test cases..."
-          python3 -m pytest tests/*.py --tb=short | tee test_results.log
-
-      - name: Compile and Run Java Program
-        if: env.language == 'Java'
-        run: |
-          javac -d solutions solutions/*.java
-          echo "Running Java test cases..."
-          java -cp solutions Solution < tests/Test.java | tee test_results.log
+          while read -r test_input test_expected; do
+            echo "Input: $test_input"
+            echo "Expected Output: $test_expected"
+            actual_output=$(echo "$test_input" | python3 solutions/*.py)
+            echo "Actual Output: $actual_output"
+            if [ "$actual_output" == "$test_expected" ]; then
+              echo "Test Case Passed ✅"
+            else
+              echo "Test Case Failed ❌"
+            fi
+          done < tests/test.py | tee test_results.log
 
       - name: Upload Test Results
         if: always()
