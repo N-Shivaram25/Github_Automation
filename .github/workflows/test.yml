@@ -20,15 +20,14 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y gcc g++ openjdk-17-jdk python3 python3-pip
-          pip3 install pytest  # Install pytest using pip3
+          sudo apt install -y gcc g++ openjdk-17-jdk python3 python3-pytest
 
       - name: Detect Changed Files
         id: changed-files
         run: |
           BEFORE_COMMIT="${{ github.event.before }}"
           if [ -z "$BEFORE_COMMIT" ] || ! git cat-file -e "$BEFORE_COMMIT"^{commit}; then
-            BEFORE_COMMIT=$(git rev-parse HEAD~1)  # Use last commit as fallback
+            BEFORE_COMMIT=$(git rev-parse HEAD~1)
           fi
           
           CHANGED_FILES=$(git diff --name-only "$BEFORE_COMMIT" HEAD)
@@ -47,53 +46,51 @@ jobs:
         run: |
           if echo "$CHANGED_FILES" | grep -qE '\.c$'; then
             echo "language=C" >> $GITHUB_ENV
-            echo "::set-output name=language::C"
           elif echo "$CHANGED_FILES" | grep -qE '\.cpp$'; then
             echo "language=C++" >> $GITHUB_ENV
-            echo "::set-output name=language::C++"
           elif echo "$CHANGED_FILES" | grep -qE '\.py$'; then
             echo "language=Python" >> $GITHUB_ENV
-            echo "::set-output name=language::Python"
           elif echo "$CHANGED_FILES" | grep -qE '\.java$'; then
             echo "language=Java" >> $GITHUB_ENV
-            echo "::set-output name=language::Java"
           else
             echo "No relevant file changes detected. Exiting..."
             exit 1
           fi
 
-      - name: Run C Tests
-        if: steps.determine-file.outputs.language == 'C'
+      - name: Compile and Run C Program
+        if: env.language == 'C'
         run: |
           gcc solutions/*.c -o solution_c
           echo "Running C test cases..."
-          for test in tests/*.c; do
-            echo "Running test case: $test"
-            ./solution_c < "$test"
-          done
+          ./solution_c < tests/test.c | tee test_results.log
 
-      - name: Run C++ Tests
-        if: steps.determine-file.outputs.language == 'C++'
+      - name: Compile and Run C++ Program
+        if: env.language == 'C++'
         run: |
           g++ solutions/*.cpp -o solution_cpp
           echo "Running C++ test cases..."
-          for test in tests/*.cpp; do
-            echo "Running test case: $test"
-            ./solution_cpp < "$test"
-          done
+          ./solution_cpp < tests/test.cpp | tee test_results.log
 
       - name: Run Python Tests
-        if: steps.determine-file.outputs.language == 'Python'
+        if: env.language == 'Python'
         run: |
+          if [ ! -f solutions/*.py ]; then
+            echo "Error: Python script not found!"
+            exit 1
+          fi
           echo "Running Python test cases..."
-          pytest tests/ --tb=short --maxfail=5
+          python3 -m pytest tests/*.py --tb=short | tee test_results.log
 
-      - name: Run Java Tests
-        if: steps.determine-file.outputs.language == 'Java'
+      - name: Compile and Run Java Program
+        if: env.language == 'Java'
         run: |
-          javac solutions/*.java
+          javac -d solutions solutions/*.java
           echo "Running Java test cases..."
-          for test in tests/*.java; do
-            echo "Running test case: $test"
-            java -cp solutions Solution < "$test"
-          done
+          java -cp solutions Solution < tests/Test.java | tee test_results.log
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test_results.log
