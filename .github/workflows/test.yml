@@ -20,7 +20,8 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y gcc g++ openjdk-17-jdk python3 pytest
+          sudo apt install -y gcc g++ openjdk-17-jdk python3 python3-pip
+          pip3 install pytest  # Install pytest using pip3
 
       - name: Detect Changed Files
         id: changed-files
