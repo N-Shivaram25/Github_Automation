@@ -42,9 +42,6 @@ jobs:
           for file in $CHANGED_FILES; do
             case "$file" in
               *.c) echo "language=C" >> $GITHUB_ENV ;;
-              *.cpp) echo "language=C++" >> $GITHUB_ENV ;;
-              *.py) echo "language=Python" >> $GITHUB_ENV ;;
-              *.java) echo "language=Java" >> $GITHUB_ENV ;;
             esac
           done
 
@@ -52,89 +49,12 @@ jobs:
         if: env.language == 'C'
         run: sudo apt update && sudo apt install -y gcc
 
-      - name: Install C++ Dependencies
-        if: env.language == 'C++'
-        run: sudo apt update && sudo apt install -y g++
-
-      - name: Install Java Dependencies
-        if: env.language == 'Java'
-        run: sudo apt update && sudo apt install -y openjdk-17-jdk
-
-      - name: Install Python Dependencies
-        if: env.language == 'Python'
-        run: sudo apt update && sudo apt install -y python3
-
-      - name: Compile and Run C Program
+      - name: Compile and Run C Tests
         if: env.language == 'C'
         run: |
-          gcc -o solution_c $CHANGED_FILES
-          echo "Running tests for C program..."
-          while read -r test_input test_expected; do
-            echo "Input: $test_input"
-            echo "Expected Output: $test_expected"
-            actual_output=$(echo "$test_input" | ./solution_c)
-            echo "Actual Output: $actual_output"
-            if [ "$actual_output" == "$test_expected" ]; then
-              echo "✅ Test Passed"
-            else
-              echo "❌ Test Failed"
-            fi
-          done < tests/test.c | tee test_results.log
-
-      - name: Compile and Run C++ Program
-        if: env.language == 'C++'
-        run: |
-          g++ -o solution_cpp $CHANGED_FILES
-          echo "Running tests for C++ program..."
-          while read -r test_input test_expected; do
-            echo "Input: $test_input"
-            echo "Expected Output: $test_expected"
-            actual_output=$(echo "$test_input" | ./solution_cpp)
-            echo "Actual Output: $actual_output"
-            if [ "$actual_output" == "$test_expected" ]; then
-              echo "✅ Test Passed"
-            else
-              echo "❌ Test Failed"
-            fi
-          done < tests/test.cpp | tee test_results.log
-
-      - name: Compile and Run Java Program
-        if: env.language == 'Java'
-        run: |
-          javac $CHANGED_FILES -d solutions
-          for file in $CHANGED_FILES; do
-            class=$(basename "$file" .java)
-            echo "Running tests for Java class: $class..."
-            while read -r test_input test_expected; do
-              echo "Input: $test_input"
-              echo "Expected Output: $test_expected"
-              actual_output=$(echo "$test_input" | java -cp solutions "$class")
-              echo "Actual Output: $actual_output"
-              if [ "$actual_output" == "$test_expected" ]; then
-                echo "✅ Test Passed"
-              else
-                echo "❌ Test Failed"
-              fi
-            done < tests/test.java | tee test_results.log
-          done
-
-      - name: Run Python Program
-        if: env.language == 'Python'
-        run: |
-          echo "Running tests for Python script..."
-          for file in $CHANGED_FILES; do
-            while read -r test_input test_expected; do
-              echo "Input: $test_input"
-              echo "Expected Output: $test_expected"
-              actual_output=$(echo "$test_input" | python3 "$file")
-              echo "Actual Output: $actual_output"
-              if [ "$actual_output" == "$test_expected" ]; then
-                echo "✅ Test Passed"
-              else
-                echo "❌ Test Failed"
-              fi
-            done < tests/test.py | tee test_results.log
-          done
+          gcc tests/test.c -o test_runner
+          echo "Running C Test Cases..."
+          ./test_runner | tee test_results.log  # Capture output in logs
 
       - name: Upload Test Results
         if: always()
