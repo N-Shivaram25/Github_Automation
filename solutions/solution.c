@@ -9,6 +9,6 @@ void sortedSquares(int* nums, int size, int* result) {
             result[pos] = nums[right] * nums[right];
             right--;
         }
-        pos--;
+        pos--;//sdvzdcvsdc
     }
 }
